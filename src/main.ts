@@ -1,9 +1,8 @@
-import type { Goal } from "#core/goal.ts";
-import type { Provider } from "#core/provider.ts";
+import type { Goal, Provider } from "#metabolism.ts";
 import { default as packageJSON } from "#project/package.json" with { type: "json" };
 import { Command, InvalidArgumentError } from "commander";
 import { allGoals, allProviders } from "./registry.ts";
-import { build, prepare } from "./runner.ts";
+import { build, prepare } from "./runner/runner.ts";
 
 const command = new Command("pnpm start")
 	.description("Metabolism - Prism Launcher Metadata Generator")

@@ -4,8 +4,8 @@ import {
 	QUILT_MAVEN,
 	QUILT_META,
 } from "#common/constants/urls.ts";
-import { HTTPCacheMode, type HTTPClient } from "#core/httpClient.ts";
-import { defineProvider } from "#core/provider.ts";
+import { HTTPCacheMode, type HTTPClient } from "#httpClient.ts";
+import { defineProvider } from "#metabolism.ts";
 import { FabricInstallerData } from "#schema/fabric/fabricInstallerData.ts";
 import {
 	FabricMetaVersion,

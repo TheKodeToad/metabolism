@@ -1,6 +1,6 @@
 import { FABRIC_MAVEN, FABRIC_META } from "#common/constants/urls.ts";
-import type { HTTPClient } from "#core/httpClient.ts";
-import { defineProvider } from "#core/provider.ts";
+import type { HTTPClient } from "#httpClient.ts";
+import { defineProvider } from "#metabolism.ts";
 import {
 	FabricMetaVersion,
 	FabricMetaVersions,

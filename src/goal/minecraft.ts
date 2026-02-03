@@ -1,4 +1,3 @@
-import { throwError } from "#common/general.ts";
 import {
 	isLWJGL2,
 	isLWJGL2Dependency,
@@ -9,7 +8,8 @@ import {
 	transformArgs,
 	transformPistonLibrary,
 } from "#common/transformation/pistonMeta.ts";
-import { defineGoal, type VersionOutput } from "#core/goal.ts";
+import { throwError } from "#common/util.ts";
+import { defineGoal, type VersionOutput } from "#metabolism.ts";
 import gameVersions from "#provider/gameVersions/index.ts";
 import {
 	VersionFileTrait,

@@ -1,7 +1,7 @@
-import { setIfAbsent } from "#common/general.ts";
-import { type Goal, type VersionOutput } from "#core/goal.ts";
-import { moduleLogger } from "#core/logger.ts";
-import type { Provider } from "#core/provider.ts";
+import { digestStringToBuf, setIfAbsent } from "#common/util.ts";
+import { moduleLogger } from "#logger.ts";
+import type { Provider } from "#metabolism.ts";
+import { type Goal, type VersionOutput } from "#metabolism.ts";
 import type { IndexFile } from "#schema/format/v1/indexFile.ts";
 import type {
 	PackageIndexFile,
@@ -11,8 +11,7 @@ import type { VersionFile } from "#schema/format/v1/versionFile.ts";
 import { pick, sortBy } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { DiskCachedClient } from "./http/diskCachedClient.ts";
-import { digest } from "./util.ts";
+import { DiskCachedClient } from "./diskCachedClient.ts";
 
 const logger = moduleLogger();
 
@@ -181,8 +180,8 @@ async function runGoal(
 				throw new Error("Version contains null bytes");
 			}
 
-			// should never happen - swiss cheese
 			if (!outputPath.startsWith(outputDir)) {
+				// should never happen - just to be extra sure
 				throw new Error(
 					`Version '${output.version}' escapes output directory`,
 				);
@@ -198,8 +197,8 @@ async function runGoal(
 
 			logger.debug(`Wrote '${outputPath}'`);
 
-			const sha256 = await digest("sha-256", outputData).then((sum) =>
-				sum.toString("hex"),
+			const sha256 = await digestStringToBuf("sha-256", outputData).then(
+				(sum) => sum.toString("hex"),
 			);
 
 			logger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
@@ -232,8 +231,8 @@ async function runGoal(
 
 	logger.debug(`Wrote '${indexPath}'`);
 
-	const indexSha256 = await digest("sha-256", indexData).then((sum) =>
-		sum.toString("hex"),
+	const indexSha256 = await digestStringToBuf("sha-256", indexData).then(
+		(sum) => sum.toString("hex"),
 	);
 
 	logger.debug(`sha-256 of '${indexPath}' index is ${indexSha256}`);
@@ -249,7 +248,7 @@ function generateVersionFile(goal: Goal, output: VersionOutput): VersionFile {
 		...output,
 	};
 
-	// trim
+	// give it a little trim :)
 	if (file.requires?.length === 0) {
 		delete file.requires;
 	}

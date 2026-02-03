@@ -1,3 +1,5 @@
+import { Semaphore } from "es-toolkit";
+
 export function throwError(error: Error | string): never {
 	if (typeof error === "string") {
 		throw new Error(error);
@@ -24,4 +26,27 @@ export function setIfAbsent<TMap extends Map<any, any>>(
 		map.set(key, value);
 		return value;
 	}
+}
+
+export function concurrencyLimit(max: number) {
+	const semaphore = new Semaphore(max);
+
+	return async function limit<T>(callback: () => T): Promise<Awaited<T>> {
+		await semaphore.acquire();
+
+		try {
+			return await callback();
+		} finally {
+			semaphore.release();
+		}
+	};
+}
+
+export async function digestStringToBuf(
+	algorithm: string,
+	data: string,
+): Promise<Buffer> {
+	return Buffer.from(
+		await crypto.subtle.digest(algorithm, Buffer.from(data)),
+	);
 }

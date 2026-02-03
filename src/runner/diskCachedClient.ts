@@ -1,3 +1,4 @@
+import { digestStringToBuf } from "#common/util.ts";
 import {
 	HTTPCacheMode,
 	type CompareLocalDigestStrategy,
@@ -5,12 +6,11 @@ import {
 	type HTTPClient,
 	type Metadata,
 	type Response,
-} from "#core/httpClient.ts";
-import { moduleLogger } from "#core/logger.ts";
+} from "#httpClient.ts";
+import { moduleLogger } from "#logger.ts";
 import { HttpReader, TextWriter, ZipReader } from "@zip.js/zip.js";
 import { pick, retry } from "es-toolkit";
 import type { Logger } from "pino";
-import { digest } from "../util.ts";
 import {
 	DiskCache,
 	hasBody,
@@ -228,7 +228,7 @@ export class DiskCachedClient implements HTTPClient {
 		const digestResult =
 			strategy.algorithm === "sha-1" ?
 				entry.body.sha1
-			:	await digest(strategy.algorithm, entry.body.value);
+			:	await digestStringToBuf(strategy.algorithm, entry.body.value);
 
 		const expected =
 			typeof strategy.expected === "string" ?

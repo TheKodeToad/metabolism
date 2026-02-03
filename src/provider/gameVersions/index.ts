@@ -1,6 +1,6 @@
 import { OMNIARCHIVE_META, PISTON_META } from "#common/constants/urls.ts";
-import { HTTPCacheMode, type HTTPClient } from "#core/httpClient.ts";
-import { defineProvider } from "#core/provider.ts";
+import { HTTPCacheMode, type HTTPClient } from "#httpClient.ts";
+import { defineProvider } from "#metabolism.ts";
 import { PistonVersion } from "#schema/pistonMeta/pistonVersion.ts";
 import {
 	PistonVersionManifest,

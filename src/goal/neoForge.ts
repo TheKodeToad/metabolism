@@ -3,7 +3,7 @@ import {
 	transformArgs,
 	transformPistonLibrary,
 } from "#common/transformation/pistonMeta.ts";
-import { defineGoal, type VersionOutput } from "#core/goal.ts";
+import { defineGoal, type VersionOutput } from "#metabolism.ts";
 import gameVersions from "#provider/gameVersions/index.ts";
 import neoForgeLoaderVersions from "#provider/neoForgeLoaderVersions.ts";
 import type { VersionFileLibrary } from "#schema/format/v1/versionFile.ts";

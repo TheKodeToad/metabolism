@@ -1,4 +1,3 @@
-import { setIfAbsent } from "#common/general.ts";
 import {
 	isLWJGL2,
 	isLWJGL2Dependency,
@@ -8,8 +7,9 @@ import {
 	isPlatformLibrary,
 	transformPistonArtifact,
 } from "#common/transformation/pistonMeta.ts";
-import { defineGoal, type VersionOutput } from "#core/goal.ts";
-import { moduleLogger } from "#core/logger.ts";
+import { setIfAbsent } from "#common/util.ts";
+import { moduleLogger } from "#logger.ts";
+import { defineGoal, type VersionOutput } from "#metabolism.ts";
 import pistonMetaGameVersions from "#provider/gameVersions/index.ts";
 import type {
 	VersionFileArtifact,

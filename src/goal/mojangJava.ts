@@ -1,5 +1,5 @@
-import { setIfAbsent } from "#common/general.ts";
-import { defineGoal, type VersionOutput } from "#core/goal.ts";
+import { setIfAbsent } from "#common/util.ts";
+import { defineGoal, type VersionOutput } from "#metabolism.ts";
 import mojangJavaVersions from "#provider/mojangJavaVersions.ts";
 import type { VersionFileRuntime } from "#schema/format/v1/versionFile.ts";
 import type {

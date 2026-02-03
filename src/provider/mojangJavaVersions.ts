@@ -1,5 +1,5 @@
 import { PISTON_META } from "#common/constants/urls.ts";
-import { defineProvider } from "#core/provider.ts";
+import { defineProvider } from "#metabolism.ts";
 import { PistonJavaRuntimeInfo } from "#schema/pistonMeta/pistonJavaRuntimeInfo.ts";
 
 const RUNTIMES_URL = new URL(

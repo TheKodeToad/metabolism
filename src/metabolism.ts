@@ -1,5 +1,15 @@
-import type { VersionFile } from "../schema/format/v1/versionFile.ts";
-import type { Provider } from "./provider.ts";
+import type { HTTPClient } from "#httpClient.ts";
+import type { VersionFile } from "./schema/format/v1/versionFile.ts";
+
+export interface Provider<TData = unknown> {
+	id: string;
+
+	provide(http: HTTPClient): Promise<TData>;
+}
+
+export function defineProvider<D>(provider: Provider<D>): Provider<D> {
+	return provider;
+}
 
 export function defineGoal<const TProviders extends Provider[]>(
 	goal: Goal<TProviders>,

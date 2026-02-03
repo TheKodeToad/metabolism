@@ -1,12 +1,51 @@
-import { setIfAbsent } from "#common/general.ts";
-import { moduleLogger } from "#core/logger.ts";
+import { digestStringToBuf, setIfAbsent } from "#common/util.ts";
+import { moduleLogger } from "#logger.ts";
 import { Mutex, omit } from "es-toolkit";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z, ZodError } from "zod";
-import { deleteFileIfExists, digest, readFileIfExists } from "../util.ts";
 
 const logger = moduleLogger();
+
+function getErrorCode(error: unknown): string | undefined {
+	if (!(error instanceof Error)) {
+		return undefined;
+	}
+	if (typeof error["code"] != "string") {
+		return undefined;
+	}
+
+	return error["code"];
+}
+
+async function readFileIfExists(
+	path: string,
+	encoding: BufferEncoding,
+): Promise<string | null> {
+	try {
+		return await readFile(path, encoding);
+	} catch (error) {
+		if (getErrorCode(error) != "ENOENT") {
+			throw error;
+		}
+
+		return null;
+	}
+}
+
+async function deleteFileIfExists(path: string): Promise<boolean> {
+	try {
+		await rm(path);
+
+		return true;
+	} catch (error) {
+		if (getErrorCode(error) !== "ENOENT") {
+			throw error;
+		}
+
+		return false;
+	}
+}
 
 const FILE_ENCODING: BufferEncoding = "utf-8";
 const META_SUFFIX: string = ".entry.json";
@@ -151,7 +190,7 @@ export class CacheEntryAccessor {
 			return null;
 		}
 
-		const digestBuffer = await digest("sha-1", body);
+		const digestBuffer = await digestStringToBuf("sha-1", body);
 
 		if (!digestBuffer.equals(meta.sha1)) {
 			logger.warn(
@@ -172,7 +211,7 @@ export class CacheEntryAccessor {
 	): Promise<WithSha1<TEntry>> {
 		const sha1 =
 			entry.body !== undefined ?
-				await digest("sha-1", entry.body.value)
+				await digestStringToBuf("sha-1", entry.body.value)
 			:	undefined;
 
 		const metaRaw: CacheEntryMetaRaw = {
