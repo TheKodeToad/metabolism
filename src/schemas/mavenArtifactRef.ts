@@ -54,6 +54,15 @@ class MavenArtifactRef_ {
 		return result;
 	}
 
+	withClassifier(classifier?: string): MavenArtifactRef {
+		return new MavenArtifactRef_(
+			this.group,
+			this.artifact,
+			this.version,
+			classifier,
+		);
+	}
+
 	withoutClassifier(): MavenArtifactRef {
 		return new MavenArtifactRef_(this.group, this.artifact, this.version);
 	}

@@ -12,9 +12,7 @@ export default defineProvider({
 	id: "game-versions",
 
 	async provide(http): Promise<PistonVersion[]> {
-		return Promise.all([
-			pistonMetaVersions(http),
-		]).then((versions) =>
+		return Promise.all([pistonMetaVersions(http)]).then((versions) =>
 			orderBy(
 				versions.flat(),
 				[(version) => version.releaseTime],
