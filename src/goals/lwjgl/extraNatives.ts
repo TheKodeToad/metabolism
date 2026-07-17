@@ -1,9 +1,16 @@
-import type { VersionFilePlatform } from "#schemas/format/v1/versionFile.ts";
-import type { ArtifactWithClassifier } from "./index.ts";
+import type {
+	VersionFileArtifact,
+	VersionFilePlatform,
+} from "#schemas/format/v1/versionFile.ts";
 
 type ExtraNatives = Record<
 	string,
-	Partial<Record<VersionFilePlatform, ArtifactWithClassifier>>
+	Partial<
+		Record<
+			VersionFilePlatform,
+			VersionFileArtifact & { classifier: string }
+		>
+	>
 >;
 
 export const LWJGL_EXTRA_NATIVES: ExtraNatives = {
