@@ -1,4 +1,4 @@
-import { OMNIARCHIVE_META, PISTON_META } from "#common/constants/urls.ts";
+import { PISTON_META } from "#common/constants/urls.ts";
 import { HTTPCacheMode, type HTTPClient } from "#httpClient.ts";
 import { defineProvider } from "#index.ts";
 import { PistonVersion } from "#schemas/pistonMeta/pistonVersion.ts";
@@ -7,7 +7,6 @@ import {
 	PistonVersionRef,
 } from "#schemas/pistonMeta/pistonVersionManifest.ts";
 import { orderBy } from "es-toolkit";
-import { OMNIARCHIVE_MAPPINGS } from "./omniarchiveMappings.ts";
 
 export default defineProvider({
 	id: "game-versions",
@@ -15,7 +14,6 @@ export default defineProvider({
 	async provide(http): Promise<PistonVersion[]> {
 		return Promise.all([
 			pistonMetaVersions(http),
-			omniarchiveVersions(http),
 		]).then((versions) =>
 			orderBy(
 				versions.flat(),
@@ -39,26 +37,6 @@ async function pistonMetaVersions(http: HTTPClient): Promise<PistonVersion[]> {
 	);
 
 	return await getVersions(http, base, manifest.versions);
-}
-
-// not all omniarchive versions - just enough to maintain backwards compat :)
-async function omniarchiveVersions(http: HTTPClient): Promise<PistonVersion[]> {
-	const base = "omniarchive";
-
-	const manifest = PistonVersionManifest.parse(
-		(
-			await http.getCached(
-				new URL("v1/manifest.json", OMNIARCHIVE_META),
-				base + "/manifest.json",
-			)
-		).json(),
-	);
-
-	const versions = manifest.versions
-		.filter((x) => Object.hasOwn(OMNIARCHIVE_MAPPINGS, x.id))
-		.map((x) => ({ ...x, ...OMNIARCHIVE_MAPPINGS[x.id]! }));
-
-	return getVersions(http, base, versions);
 }
 
 async function getVersions(
