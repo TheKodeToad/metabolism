@@ -80,6 +80,10 @@ async function oldSnapshots(http: HTTPClient): Promise<PistonVersion[]> {
 				...OldSnapshotVersion.parse(response),
 				id: version.id,
 				type: "old_snapshot",
+				javaVersion: {
+					component: "jre-legacy",
+					majorVersion: 8,
+				},
 				downloads: {
 					client: {
 						url: version.jar,
