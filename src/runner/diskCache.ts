@@ -54,7 +54,6 @@ const DIGEST_ENCODING: BufferEncoding = "base64";
 const CacheEntryMeta = z
 	.object({
 		lastModified: z.coerce.date(),
-		eTag: z.string(),
 		sha1: z
 			.string()
 			.transform(
@@ -215,7 +214,6 @@ export class CacheEntryAccessor {
 			:	undefined;
 
 		const metaRaw: CacheEntryMetaRaw = {
-			eTag: entry.eTag,
 			lastModified: entry.lastModified?.toISOString(),
 			sha1: sha1?.toString(DIGEST_ENCODING),
 		};
