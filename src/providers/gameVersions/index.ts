@@ -7,6 +7,7 @@ import {
 	PistonVersionRef,
 } from "#schemas/pistonMeta/pistonVersionManifest.ts";
 import { orderBy } from "es-toolkit";
+import { OLD_SNAPSHOTS } from "./oldSnapshots.ts";
 
 export default defineProvider({
 	id: "game-versions",
@@ -15,7 +16,7 @@ export default defineProvider({
 		return Promise.all([
 			pistonMetaVersions(http),
 			fabricMavenVersions(http),
-
+			oldSnapshots(http),
 		]).then((versions) =>
 			orderBy(
 				versions.flat(),
@@ -47,13 +48,48 @@ async function fabricMavenVersions(http: HTTPClient): Promise<PistonVersion[]> {
 	const manifest = PistonVersionManifest.parse(
 		(
 			await http.getCached(
-				new URL("net/minecraft/experimental_versions.json", FABRIC_MAVEN),
+				new URL(
+					"net/minecraft/experimental_versions.json",
+					FABRIC_MAVEN,
+				),
 				base + "/experimental_versions.json",
 			)
 		).json(),
 	);
 
 	return await getVersions(http, base, manifest.versions);
+}
+
+const OldSnapshotVersion = PistonVersion.omit({ downloads: true });
+
+async function oldSnapshots(http: HTTPClient): Promise<PistonVersion[]> {
+	const base = "old-snapshots";
+
+	return await Promise.all(
+		OLD_SNAPSHOTS.map(async (version): Promise<PistonVersion> => {
+			const response = (
+				await http.getCached(
+					version.url,
+					base + "/" + version.id + ".json",
+					{ mode: HTTPCacheMode.Eternal },
+				)
+			).json();
+
+			// manifest ID and type should take precidence - in some cases we override it
+			return {
+				...OldSnapshotVersion.parse(response),
+				id: version.id,
+				type: "old_snapshot",
+				downloads: {
+					client: {
+						url: version.jar,
+						sha1: version.sha1,
+						size: version.size,
+					},
+				},
+			};
+		}),
+	);
 }
 
 async function getVersions(
