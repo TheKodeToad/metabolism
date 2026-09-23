@@ -1,4 +1,4 @@
-import { OMNIARCHIVE_META, PISTON_META } from "#common/constants/urls.ts";
+import { FABRIC_MAVEN, PISTON_META } from "#common/constants/urls.ts";
 import { HTTPCacheMode, type HTTPClient } from "#httpClient.ts";
 import { defineProvider } from "#index.ts";
 import { PistonVersion } from "#schemas/pistonMeta/pistonVersion.ts";
@@ -7,7 +7,7 @@ import {
 	PistonVersionRef,
 } from "#schemas/pistonMeta/pistonVersionManifest.ts";
 import { orderBy } from "es-toolkit";
-import { OMNIARCHIVE_MAPPINGS } from "./omniarchiveMappings.ts";
+import { OLD_SNAPSHOTS } from "./oldSnapshots.ts";
 
 export default defineProvider({
 	id: "game-versions",
@@ -15,7 +15,8 @@ export default defineProvider({
 	async provide(http): Promise<PistonVersion[]> {
 		return Promise.all([
 			pistonMetaVersions(http),
-			omniarchiveVersions(http),
+			fabricMavenVersions(http),
+			oldSnapshots(http),
 		]).then((versions) =>
 			orderBy(
 				versions.flat(),
@@ -41,24 +42,54 @@ async function pistonMetaVersions(http: HTTPClient): Promise<PistonVersion[]> {
 	return await getVersions(http, base, manifest.versions);
 }
 
-// not all omniarchive versions - just enough to maintain backwards compat :)
-async function omniarchiveVersions(http: HTTPClient): Promise<PistonVersion[]> {
-	const base = "omniarchive";
+async function fabricMavenVersions(http: HTTPClient): Promise<PistonVersion[]> {
+	const base = "fabric-maven";
 
 	const manifest = PistonVersionManifest.parse(
 		(
 			await http.getCached(
-				new URL("v1/manifest.json", OMNIARCHIVE_META),
-				base + "/manifest.json",
+				new URL(
+					"net/minecraft/experimental_versions.json",
+					FABRIC_MAVEN,
+				),
+				base + "/experimental_versions.json",
 			)
 		).json(),
 	);
 
-	const versions = manifest.versions
-		.filter((x) => Object.hasOwn(OMNIARCHIVE_MAPPINGS, x.id))
-		.map((x) => ({ ...x, ...OMNIARCHIVE_MAPPINGS[x.id]! }));
+	return await getVersions(http, base, manifest.versions);
+}
 
-	return getVersions(http, base, versions);
+const OldSnapshotVersion = PistonVersion.omit({ downloads: true });
+
+async function oldSnapshots(http: HTTPClient): Promise<PistonVersion[]> {
+	const base = "old-snapshots";
+
+	return await Promise.all(
+		OLD_SNAPSHOTS.map(async (version): Promise<PistonVersion> => {
+			const response = (
+				await http.getCached(
+					version.url,
+					base + "/" + version.id + ".json",
+					{ mode: HTTPCacheMode.Eternal },
+				)
+			).json();
+
+			// manifest ID and type should take precidence - in some cases we override it
+			return {
+				...OldSnapshotVersion.parse(response),
+				id: version.id,
+				type: "old_snapshot",
+				downloads: {
+					client: {
+						url: version.jar,
+						sha1: version.sha1,
+						size: version.size,
+					},
+				},
+			};
+		}),
+	);
 }
 
 async function getVersions(

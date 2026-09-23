@@ -56,14 +56,13 @@ interface LWJGLVersion {
 	preferSplit?: boolean;
 }
 
-export type ArtifactWithClassifier = VersionFileArtifact & {
-	classifier: string;
-};
-
 interface LWJGLModule {
 	baseName: MavenArtifactRef;
-	javaCode?: VersionFileArtifact;
-	nativeCode: Map<VersionFilePlatform, ArtifactWithClassifier>;
+	javaCode?: VersionFileArtifact & { classifier?: string };
+	nativeCode: Map<
+		VersionFilePlatform,
+		VersionFileArtifact & { classifier: string }
+	>;
 }
 
 function generate(
@@ -112,7 +111,7 @@ function generate(
 				);
 				const classifier = lib.name.classifier;
 
-				if (classifier) {
+				if (classifier && classifier !== "unsafe") {
 					const platform = mapClassifier(classifier);
 
 					if (platform) {
@@ -127,8 +126,8 @@ function generate(
 					}
 
 					continue;
-				} else {
-					module.javaCode = artifact;
+				} else if (!module.javaCode) {
+					module.javaCode = { ...artifact, classifier };
 				}
 			}
 
@@ -222,8 +221,9 @@ function transformModuleMerged(module: LWJGLModule): VersionFileLibrary[] {
 
 	if (module.javaCode !== undefined) {
 		result.push({
-			name: module.baseName.value,
-			downloads: { artifact: module.javaCode },
+			name: module.baseName.withClassifier(module.javaCode.classifier)
+				.value,
+			downloads: { artifact: omit(module.javaCode, ["classifier"]) },
 		});
 	}
 
@@ -258,8 +258,9 @@ function transformModuleSplit(module: LWJGLModule): VersionFileLibrary[] {
 
 	if (module.javaCode !== undefined) {
 		result.push({
-			name: module.baseName.value,
-			downloads: { artifact: module.javaCode },
+			name: module.baseName.withClassifier(module.javaCode.classifier)
+				.value,
+			downloads: { artifact: omit(module.javaCode, ["classifier"]) },
 		});
 	}
 
