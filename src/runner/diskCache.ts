@@ -1,37 +1,16 @@
-import { digestStringToBuf, setIfAbsent } from "#common/util.ts";
+import {
+	digestStringToBuf,
+	getErrorCode,
+	readFileIfExists,
+	setIfAbsent,
+} from "#common/util.ts";
 import { moduleLogger } from "#logger.ts";
 import { Mutex, omit } from "es-toolkit";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z, ZodError } from "zod";
 
 const logger = moduleLogger();
-
-function getErrorCode(error: unknown): string | undefined {
-	if (!(error instanceof Error)) {
-		return undefined;
-	}
-	if (typeof error["code"] != "string") {
-		return undefined;
-	}
-
-	return error["code"];
-}
-
-async function readFileIfExists(
-	path: string,
-	encoding: BufferEncoding,
-): Promise<string | null> {
-	try {
-		return await readFile(path, encoding);
-	} catch (error) {
-		if (getErrorCode(error) != "ENOENT") {
-			throw error;
-		}
-
-		return null;
-	}
-}
 
 async function deleteFileIfExists(path: string): Promise<boolean> {
 	try {
