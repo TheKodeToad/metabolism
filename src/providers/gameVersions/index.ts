@@ -76,7 +76,6 @@ async function oldSnapshots(http: HTTPClient): Promise<PistonVersion[]> {
 			// manifest ID and type should take precidence - in some cases we override it
 			return {
 				...OldSnapshotVersion.parse(response),
-				id: version.id,
 				type: "old_snapshot",
 				javaVersion: {
 					component: "jre-legacy",
