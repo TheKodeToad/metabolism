@@ -1,6 +1,7 @@
-import { readdir, readFile, mkdir, writeFile } from "fs/promises";
+import { sortBy } from "es-toolkit";
+import { mkdir, readdir, readFile, writeFile } from "fs/promises";
 import { create as createDiffPatcher } from "jsondiffpatch";
-import { join as joinPath, dirname, basename } from "path";
+import { basename, dirname, join as joinPath } from "path";
 import { pathToFileURL } from "url";
 
 const [script, left, right] = process.argv.slice(1);
@@ -50,6 +51,10 @@ function preprocess(json) {
 		json["+traits"] = json["+traits"].filter(
 			(trait) => trait !== "XR:Initial",
 		);
+	}
+
+	if (json["libraries"]) {
+		json["libraries"] = sortBy(json["libraries"], ["name", x => x.natives?.length > 0]);
 	}
 }
 

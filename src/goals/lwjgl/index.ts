@@ -217,16 +217,16 @@ function patchModule(module: LWJGLModule): void {
 }
 
 function transformModuleMerged(module: LWJGLModule): VersionFileLibrary[] {
-	const result: VersionFileLibrary[] = [];
-
+	let javaCodeLib: VersionFileLibrary | null = null;
 	if (module.javaCode !== undefined) {
-		result.push({
+		javaCodeLib = {
 			name: module.baseName.withClassifier(module.javaCode.classifier)
 				.value,
 			downloads: { artifact: omit(module.javaCode, ["classifier"]) },
-		});
+		};
 	}
 
+	let nativeCodeLib: VersionFileLibrary | null = null;
 	if (!isEmpty(module.nativeCode)) {
 		const classifiers = Object.fromEntries(
 			module.nativeCode
@@ -243,14 +243,31 @@ function transformModuleMerged(module: LWJGLModule): VersionFileLibrary[] {
 				.map(([platform, artifact]) => [platform, artifact.classifier]),
 		);
 
-		result.push({
+		nativeCodeLib = {
 			name: module.baseName.value,
 			downloads: { classifiers },
 			natives,
-		});
+		};
 	}
 
-	return result;
+	if (
+		javaCodeLib
+		&& nativeCodeLib
+		&& javaCodeLib.name === nativeCodeLib.name
+	) {
+		return [
+			{
+				name: javaCodeLib.name,
+				downloads: {
+					...javaCodeLib.downloads,
+					...nativeCodeLib.downloads,
+				},
+				natives: nativeCodeLib.natives,
+			},
+		];
+	}
+
+	return [javaCodeLib, nativeCodeLib].filter((x) => x !== null);
 }
 
 function transformModuleSplit(module: LWJGLModule): VersionFileLibrary[] {
