@@ -49,12 +49,16 @@ function preprocess(json) {
 	if (json["+traits"]) {
 		// ignored by launcher
 		json["+traits"] = json["+traits"].filter(
-			(trait) => trait !== "XR:Initial",
+			(x) => x !== "XR:Initial",
 		);
 	}
 
-	if (json["libraries"]) {
-		json["libraries"] = sortBy(json["libraries"], ["name", x => x.natives?.length > 0]);
+	if (json.libraries) {
+		json.libraries = sortBy(json.libraries, ["name"]);
+		for (const lib of json.libraries) {
+			// ignored by launcher
+			delete lib.extract;
+		}
 	}
 }
 
