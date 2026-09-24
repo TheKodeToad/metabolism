@@ -56,7 +56,7 @@ export function getErrorCode(error: unknown): string | undefined {
 	if (!(error instanceof Error)) {
 		return undefined;
 	}
-	if (typeof error["code"] != "string") {
+	if (typeof error["code"] !== "string") {
 		return undefined;
 	}
 
@@ -70,7 +70,7 @@ export async function readFileIfExists(
 	try {
 		return await readFile(path, encoding);
 	} catch (error) {
-		if (getErrorCode(error) != "ENOENT") {
+		if (getErrorCode(error) !== "ENOENT") {
 			throw error;
 		}
 
