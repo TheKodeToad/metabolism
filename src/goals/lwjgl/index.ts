@@ -56,7 +56,6 @@ interface LWJGLVersion {
 	modules: Map<string, LWJGLModule>;
 	firstSeen: Date;
 	used: boolean;
-	preferSplit?: boolean;
 }
 
 interface LWJGLModule {
@@ -66,6 +65,7 @@ interface LWJGLModule {
 		VersionFilePlatform,
 		VersionFileArtifact & { classifier: string }
 	>;
+	preferSplit?: boolean;
 }
 
 function generate(
@@ -115,6 +115,7 @@ function generate(
 				const classifier = lib.name.classifier;
 
 				if (classifier && classifier !== "unsafe") {
+					module.preferSplit = true;
 					const platform = mapClassifier(classifier);
 
 					if (platform) {
@@ -134,13 +135,13 @@ function generate(
 				}
 			}
 
-			const classifierLookup = lib.downloads?.classifiers;
+			const classifiers = lib.downloads?.classifiers;
 
-			if (lib.natives && !isEmpty(classifierLookup)) {
+			if (!isEmpty(lib.natives) && !isEmpty(classifiers)) {
 				for (const [platform, classifier] of Object.entries(
 					lib.natives,
 				)) {
-					const artifact = classifierLookup[classifier];
+					const artifact = classifiers[classifier];
 					if (!artifact) {
 						continue;
 					}
@@ -170,14 +171,6 @@ function generate(
 		.entries()
 		.filter(([_, version]) => version.used)
 		.map(([versionKey, version]): VersionOutput => {
-			const transformModule = (
-				module: LWJGLModule,
-			): VersionFileLibrary[] => {
-				return version.preferSplit ?
-						transformModuleSplit(module)
-					:	transformModuleMerged(module);
-			};
-
 			let libs = [...version.modules.values().flatMap(transformModule)];
 			const mapping = LWJGL_MAPPINGS[versionKey];
 			if (mapping) {
@@ -247,7 +240,7 @@ function redirectVersionLibs(
 	const extraLibs = [
 		...targetVersion.modules
 			.values()
-			.flatMap(transformModuleMerged)
+			.flatMap(transformModule)
 			.map(
 				(lib): VersionFileLibrary => ({
 					...lib,
@@ -259,6 +252,14 @@ function redirectVersionLibs(
 			),
 	];
 	return [...baseLibs, ...extraLibs];
+}
+
+function transformModule(module: LWJGLModule): VersionFileLibrary[] {
+	if (module.preferSplit) {
+		return transformModuleSplit(module);
+	} else {
+		return transformModuleMerged(module);
+	}
 }
 
 function transformModuleMerged(module: LWJGLModule): VersionFileLibrary[] {
