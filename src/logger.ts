@@ -1,4 +1,4 @@
-import { relative } from "node:path";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { getCallSites } from "node:util";
 import {
@@ -17,7 +17,7 @@ export function moduleLogger<ChildCustomLevels extends string = never>(
 	options?: ChildLoggerOptions<ChildCustomLevels>,
 ): Logger<ChildCustomLevels> {
 	const scriptName = fileURLToPath(getCallSites()[1]!.scriptName);
-	let module = relative("src", scriptName);
+	let module = path.relative("src", scriptName).replaceAll(path.sep, "/");
 
 	if (module.endsWith(".ts")) {
 		module = module.substring(0, module.lastIndexOf("."));

@@ -1,6 +1,7 @@
 import type { Goal, Provider } from "#index.ts";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 export const allGoals = await importGoals();
 export const allProviders = await importProviders();
@@ -22,7 +23,7 @@ async function* importValues(dir: string): AsyncGenerator<any, void, unknown> {
 		}
 
 		const relativePath = path.relative(".", importPath);
-		const defaultExport = await import(importPath).then(
+		const defaultExport = await import(pathToFileURL(importPath).toString()).then(
 			(module) => module.default,
 		);
 
