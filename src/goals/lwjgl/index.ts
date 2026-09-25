@@ -135,13 +135,11 @@ function generate(
 				}
 			}
 
-			const classifiers = lib.downloads?.classifiers;
-
-			if (!isEmpty(lib.natives) && !isEmpty(classifiers)) {
+			if (lib.natives && lib.downloads?.classifiers) {
 				for (const [platform, classifier] of Object.entries(
 					lib.natives,
 				)) {
-					const artifact = classifiers[classifier];
+					const artifact = lib.downloads.classifiers[classifier];
 					if (!artifact) {
 						continue;
 					}
@@ -241,15 +239,32 @@ function redirectVersionLibs(
 		...targetVersion.modules
 			.values()
 			.flatMap(transformModule)
-			.map(
-				(lib): VersionFileLibrary => ({
+			.map((lib): VersionFileLibrary => {
+				const result: VersionFileLibrary = {
 					...lib,
 					rules: platforms.map((os) => ({
 						action: "allow",
 						os: { name: os },
 					})),
-				}),
-			),
+				};
+
+				if (result.natives && result.downloads?.classifiers) {
+					for (const [platform, classifier] of Object.entries(
+						result.natives,
+					)) {
+						if (
+							platforms.includes(platform as VersionFilePlatform)
+						) {
+							continue;
+						}
+
+						delete result.natives[platform];
+						delete result.downloads.classifiers[classifier];
+					}
+				}
+
+				return result;
+			}),
 	];
 	return [...baseLibs, ...extraLibs];
 }
