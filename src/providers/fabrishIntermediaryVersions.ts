@@ -12,7 +12,7 @@ import {
 
 export const fabricIntermediaryVersions = defineProvider({
 	id: "fabric-intermediary-versions",
-	provide: (cache) =>
+	provide: (_logger, cache) =>
 		provide(cache, new URL("v2/", FABRIC_META), FABRIC_MAVEN),
 });
 

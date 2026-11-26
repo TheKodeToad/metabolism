@@ -38,7 +38,7 @@ export default defineGoal({
 	name: "Minecraft",
 	deps: [gameVersions],
 
-	generate: ([versions]) => {
+	generate: (_logger, [versions]) => {
 		const versionPatches = compilePatchSet(
 			MINECRAFT_VERSION_PATCHES,
 			versions.map((v) => v.id),

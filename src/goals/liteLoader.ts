@@ -23,7 +23,7 @@ export default defineGoal({
 	name: "LiteLoader",
 	deps: [liteLoaderVersions],
 
-	generate([data]) {
+	generate(_logger, [data]) {
 		const result = Object.entries(data.versions)
 			.filter(([mcVersion]) => !IGNORED_MC_VERSIONS.includes(mcVersion))
 			.flatMap(([mcVersion, entry]) =>

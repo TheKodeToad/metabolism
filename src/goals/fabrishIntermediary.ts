@@ -14,7 +14,7 @@ const fabricIntermediary = defineGoal({
 	name: "Fabric Intermediary",
 	deps: [fabricIntermediaryVersions],
 
-	generate: ([versions]) =>
+	generate: (_logger, [versions]) =>
 		versions.map((version) => transformVersion(version, FABRIC_MAVEN)),
 });
 

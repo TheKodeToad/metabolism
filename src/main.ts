@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-import type { Goal, Provider } from "#index.ts";
-import { moduleLogger } from "#logger.ts";
+import { rootLogger, type Goal, type Provider } from "#index.ts";
 import { default as packageJSON } from "#project/package.json" with { type: "json" };
 import { Command, InvalidArgumentError } from "commander";
 import { mkdir } from "node:fs/promises";
@@ -16,9 +15,7 @@ import {
 	setGlobalDispatcher,
 } from "undici";
 import { allGoals, allProviders } from "./registry.ts";
-import { build, prepare } from "./runner.ts";
-
-const logger = moduleLogger();
+import { build, prepare, type RunnerSummary } from "./runner.ts";
 
 async function setUpHTTP({
 	userAgent,
@@ -27,10 +24,14 @@ async function setUpHTTP({
 	userAgent: string;
 	httpCache?: string;
 }): Promise<void> {
+	const httpLogger = rootLogger.child({ name: "http" });
+
 	const customInterceptor: Dispatcher.DispatcherComposeInterceptor =
 		(next) => (options, handler) => {
 			const url = new URL(options.path, options.origin);
-			logger.debug(`Performing ${options.method} request to ${url.href}`);
+			httpLogger.debug(
+				`Performing ${options.method} request to ${url.href}`,
+			);
 			return next(
 				{
 					...options,
@@ -52,7 +53,7 @@ async function setUpHTTP({
 			}
 			const delay = Math.min(3000 * 2 ** (ctx.state.counter - 1), 30_000);
 			const url = new URL(ctx.opts.path, ctx.opts.origin);
-			logger.warn(
+			httpLogger.warn(
 				err,
 				`Retrying ${ctx.opts.method} ${url.href} in ${delay}`,
 			);
@@ -132,13 +133,18 @@ command
 	.action(async (providers, _, command) => {
 		await setUpHTTP(command.optsWithGlobals());
 
+		let summary: RunnerSummary;
 		if (providers === undefined) {
-			await prepare(
+			summary = await prepare(
 				new Set(allProviders.values()),
 				command.optsWithGlobals(),
 			);
 		} else {
-			await prepare(providers, command.optsWithGlobals());
+			summary = await prepare(providers, command.optsWithGlobals());
+		}
+
+		if (summary.failedGoalCount !== 0 || summary.failedProviderCount) {
+			process.exit(1);
 		}
 	});
 
@@ -150,10 +156,18 @@ command
 	.action(async (goals, _, command) => {
 		await setUpHTTP(command.optsWithGlobals());
 
+		let summary: RunnerSummary;
 		if (goals === undefined) {
-			await build(new Set(allGoals.values()), command.optsWithGlobals());
+			summary = await build(
+				new Set(allGoals.values()),
+				command.optsWithGlobals(),
+			);
 		} else {
-			await build(goals, command.optsWithGlobals());
+			summary = await build(goals, command.optsWithGlobals());
+		}
+
+		if (summary.failedGoalCount !== 0 || summary.failedProviderCount) {
+			process.exit(1);
 		}
 	});
 

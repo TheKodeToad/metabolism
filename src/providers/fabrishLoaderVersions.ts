@@ -19,14 +19,15 @@ import {
 export const fabricLoaderVersions = defineProvider({
 	id: "fabric-loader-versions",
 
-	provide: (cache) =>
+	provide: (_logger, cache) =>
 		provide(cache, new URL("v2/", FABRIC_META), FABRIC_MAVEN),
 });
 
 export const quiltLoaderVersions = defineProvider({
 	id: "quilt-loader-versions",
 
-	provide: (cache) => provide(cache, new URL("v3/", QUILT_META), QUILT_MAVEN),
+	provide: (_logger, cache) =>
+		provide(cache, new URL("v3/", QUILT_META), QUILT_MAVEN),
 });
 
 export default [fabricLoaderVersions, quiltLoaderVersions];

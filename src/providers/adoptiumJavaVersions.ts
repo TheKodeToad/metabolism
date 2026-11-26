@@ -4,7 +4,6 @@
 
 import { ADOPTIUM_API } from "#common/constants/urls.ts";
 import { defineProvider } from "#index.ts";
-import { moduleLogger } from "#logger.ts";
 import {
 	AdoptiumJavaReleases,
 	AdoptiumJavaRuntimeEntry,
@@ -13,12 +12,10 @@ import z from "zod";
 
 const RUNTIMES_URL = new URL("v3/", ADOPTIUM_API);
 
-const logger = moduleLogger();
-
 export default defineProvider({
 	id: "adoptium-java",
 
-	async provide(): Promise<AdoptiumJavaRuntimeEntry[]> {
+	async provide(logger): Promise<AdoptiumJavaRuntimeEntry[]> {
 		const releases = AdoptiumJavaReleases.parse(
 			await fetch(new URL("info/available_releases", RUNTIMES_URL)).then(
 				(x) => x.json(),

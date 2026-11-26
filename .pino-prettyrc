@@ -1,4 +1,4 @@
 {
-    "ignore": "module,pid,hostname",
-    "messageFormat": "{module} - {msg}"
+    "ignore": "name,pid,hostname",
+    "messageFormat": "{name} - {msg}"
 }

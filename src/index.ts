@@ -2,7 +2,12 @@
 //
 // SPDX-License-Identifier: MIT
 
+import pino, { type Logger } from "pino";
 import type { VersionFile } from "./schemas/format/v1/versionFile.ts";
+
+export const rootLogger = pino({
+	level: process.env.PINO_LOG_LEVEL || "info",
+});
 
 // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest#algorithm
 export type CacheHashFunction = "sha-1" | "sha-256" | "sha-384" | "sha-512";
@@ -31,7 +36,7 @@ export interface Cache {
 export interface Provider<TData = unknown> {
 	id: string;
 
-	provide(cache: Cache): Promise<TData>;
+	provide(logger: Logger, cache: Cache): Promise<TData>;
 }
 
 export function defineProvider<D>(provider: Provider<D>): Provider<D> {
@@ -49,7 +54,7 @@ export interface Goal<TProviders extends Provider[] = Provider[]> {
 	name: string;
 	deps: TProviders;
 
-	generate(data: ProviderData<TProviders>): VersionOutput[];
+	generate(logger: Logger, data: ProviderData<TProviders>): VersionOutput[];
 }
 
 export function defineGoal<const TProviders extends Provider[]>(

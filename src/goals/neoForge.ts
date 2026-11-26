@@ -28,7 +28,7 @@ export default defineGoal({
 	name: "NeoForge",
 
 	deps: [neoForgeLoaderVersions, gameVersions],
-	generate([versions, mcVersions]) {
+	generate(_logger, [versions, mcVersions]) {
 		const mcVersionsById = new Map(mcVersions.map((ver) => [ver.id, ver]));
 
 		const result = versions.map(

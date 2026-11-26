@@ -3,9 +3,9 @@
 // SPDX-License-Identifier: MIT
 
 import { patchObject, setIfAbsent } from "#common/util.ts";
-import { moduleLogger } from "#logger.ts";
+import { rootLogger } from "#index.ts";
 
-const logger = moduleLogger();
+const logger = rootLogger;
 
 export interface Patch<T> {
 	/**

@@ -17,7 +17,7 @@ export default defineGoal({
 	name: "Mojang Provided Java",
 	deps: [mojangJavaVersions],
 
-	generate([versions]) {
+	generate(_logger, [versions]) {
 		const result: VersionOutput[] = [];
 
 		const majorVersions: Map<number, FullRuntimeInfo[]> = new Map();

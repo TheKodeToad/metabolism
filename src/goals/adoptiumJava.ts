@@ -17,7 +17,7 @@ export default defineGoal({
 	name: "Adoptium Provided Java",
 	deps: [adoptiumJavaVersions],
 
-	generate([entries]): VersionOutput[] {
+	generate(_logger, [entries]): VersionOutput[] {
 		const result: VersionOutput[] = [];
 
 		const majorVersions: Map<number, AdoptiumJavaRuntimeEntry[]> =

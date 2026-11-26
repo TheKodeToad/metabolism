@@ -8,8 +8,7 @@ import {
 	setIfAbsent,
 } from "#common/util.ts";
 import type { Cache, CacheChecksum, Provider } from "#index.ts";
-import { type Goal, type VersionOutput } from "#index.ts";
-import { moduleLogger } from "#logger.ts";
+import { rootLogger, type Goal, type VersionOutput } from "#index.ts";
 import type {
 	IndexFile,
 	IndexFilePackage,
@@ -22,8 +21,9 @@ import type { VersionFile } from "#schemas/format/v1/versionFile.ts";
 import { omit, pick, sortBy } from "es-toolkit";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { Logger } from "pino";
 
-const logger = moduleLogger();
+const logger = rootLogger.child({ name: "runner" });
 
 export interface RunnerOptions {
 	cacheDir: string;
@@ -31,17 +31,24 @@ export interface RunnerOptions {
 	minify: boolean;
 }
 
+export interface RunnerSummary {
+	successfulProviderCount: number;
+	successfulGoalCount: number;
+	failedProviderCount: number;
+	failedGoalCount: number;
+}
+
 export async function prepare(
 	providers: Set<Provider>,
 	options: RunnerOptions,
-): Promise<void> {
-	await run(providers, new Map(), options);
+): Promise<RunnerSummary> {
+	return await run(providers, new Map(), options);
 }
 
 export async function build(
 	goals: Set<Goal>,
 	options: RunnerOptions,
-): Promise<void> {
+): Promise<RunnerSummary> {
 	const providers: Set<Provider> = new Set();
 	const dependents: Map<Provider, Goal[]> = new Map();
 
@@ -52,113 +59,7 @@ export async function build(
 		}
 	}
 
-	await run(providers, dependents, options);
-}
-
-async function run(
-	providers: Set<Provider>,
-	dependents: Map<Provider, Goal[]>,
-	options: RunnerOptions,
-): Promise<void> {
-	const startTime = Date.now();
-
-	const satisfiedDeps: Map<Goal, number> = new Map();
-
-	const providerResults: Map<Provider, unknown> = new Map();
-	const goalResults: { goal: Goal; sha256: string }[] = [];
-
-	await Promise.all(
-		providers.values().map(async (provider) => {
-			logger.info(`Running provider '${provider.id}'`);
-
-			providerResults.set(provider, await runProvider(provider, options));
-
-			logger.info(`Got data from provider '${provider.id}'!`);
-
-			const providerDependents = dependents.get(provider);
-
-			if (!providerDependents) {
-				return;
-			}
-
-			const tasks = providerDependents
-				.map((goal) => {
-					const counter = (satisfiedDeps.get(goal) ?? 0) + 1;
-
-					if (counter > goal.deps.length) {
-						throw new Error(
-							`Satisfied counter exceeded number of deps (${goal.deps.length}) for goal '${goal.name}'`,
-						);
-					}
-
-					satisfiedDeps.set(goal, counter);
-
-					if (counter !== goal.deps.length) {
-						return null;
-					}
-
-					const data = goal.deps.map((dep) =>
-						providerResults.get(dep),
-					);
-
-					logger.info(`Running goal '${goal.id}'`);
-
-					return runGoal(goal, data, options).then((sha256) => {
-						goalResults.push({ goal, sha256 });
-
-						logger.info(`Done goal '${goal.id}'!`);
-					});
-				})
-				.filter((x) => x != null);
-
-			return await Promise.all(tasks);
-		}),
-	);
-
-	const elapsedTime = Date.now() - startTime;
-	const formattedTime =
-		elapsedTime < 1000 ? elapsedTime + "ms" : elapsedTime / 1000 + "s";
-
-	logger.info(
-		{ providerCount: providers.size, goalCount: goalResults.length },
-		"Summary",
-	);
-
-	const indexPath = path.join(options.outputDir, "index.json");
-
-	let packages: IndexFilePackage[] = [];
-
-	// TODO: is there a better way to do this? if the formatVersion changes the old data is lost, and we don't properly validate the data either
-	const existingIndexContent = await readFileIfExists(indexPath, "utf-8");
-	if (existingIndexContent) {
-		let obj: any;
-		try {
-			obj = JSON.parse(existingIndexContent);
-		} catch {
-			/* empty */
-		}
-
-		if (obj && obj.formatVersion == 1 && obj.packages) {
-			packages = obj.packages;
-		}
-	}
-
-	for (const { goal, sha256 } of goalResults) {
-		const existingIndex = packages.findIndex((x) => x.uid === goal.id);
-		if (existingIndex !== -1) {
-			packages.splice(existingIndex, 1);
-		}
-
-		packages.push({ uid: goal.id, name: goal.name, sha256 });
-	}
-	const index: IndexFile = {
-		formatVersion: 1,
-		packages: sortBy(packages, ["uid"]),
-	};
-
-	await writeFile(indexPath, JSON.stringify(index, undefined, 2));
-
-	logger.info(`Done in ${formattedTime}!`);
+	return await run(providers, dependents, options);
 }
 
 class ProviderCache implements Cache {
@@ -238,21 +139,148 @@ class ProviderCache implements Cache {
 	}
 }
 
-async function runProvider(
-	provider: Provider,
+async function run(
+	providers: Set<Provider>,
+	dependents: Map<Provider, Goal[]>,
 	options: RunnerOptions,
-): Promise<unknown> {
-	return await provider.provide(
-		new ProviderCache(path.join(options.cacheDir, provider.id)),
+): Promise<RunnerSummary> {
+	const startTime = Date.now();
+
+	const satisfiedDeps: Map<Goal, number> = new Map();
+
+	const providerResults: Map<Provider, unknown> = new Map();
+	const goalResults: { goal: Goal; sha256: string }[] = [];
+	let failedGoalCount = 0;
+
+	const goalDepFinished = async (goal: Goal): Promise<void> => {
+		const counter = (satisfiedDeps.get(goal) ?? 0) + 1;
+
+		if (counter > goal.deps.length) {
+			throw new Error(
+				`Satisfied counter exceeded number of deps (${goal.deps.length}) for goal '${goal.name}'`,
+			);
+		}
+
+		satisfiedDeps.set(goal, counter);
+
+		if (counter !== goal.deps.length) {
+			return;
+		}
+
+		const goalLogger = logger.child({
+			name: "goal:" + goal.id,
+		});
+
+		goalLogger.info("Running goal");
+
+		try {
+			const missingDeps = goal.deps.filter(
+				(dep) => !providerResults.has(dep),
+			);
+			if (missingDeps.length !== 0) {
+				throw new Error(
+					"Dependencies failed: "
+						+ missingDeps.map((x) => x.id).join(", "),
+				);
+			}
+
+			const data = goal.deps.map((dep) => providerResults.get(dep));
+			const sha256 = await runGoal(goalLogger, goal, data, options);
+			goalResults.push({ goal, sha256 });
+			goalLogger.info("Goal completed!");
+		} catch (error) {
+			++failedGoalCount;
+			goalLogger.error(error, "Goal failed!");
+		}
+	};
+
+	await Promise.all(
+		providers.values().map(async (provider) => {
+			const providerLogger = rootLogger.child({
+				name: "provider:" + provider.id,
+			});
+
+			providerLogger.info("Running provider");
+
+			try {
+				const providerResult = await provider.provide(
+					providerLogger,
+					new ProviderCache(path.join(options.cacheDir, provider.id)),
+				);
+				providerResults.set(provider, providerResult);
+				providerLogger.info("Provider completed!");
+			} catch (error) {
+				providerLogger.error("Provider failed!");
+			}
+
+			const providerDependents = dependents.get(provider);
+
+			if (!providerDependents) {
+				return;
+			}
+
+			return await Promise.all(providerDependents.map(goalDepFinished));
+		}),
 	);
+
+	const elapsedTime = Date.now() - startTime;
+	const formattedTime =
+		elapsedTime < 1000 ? elapsedTime + "ms" : elapsedTime / 1000 + "s";
+
+	const summary: RunnerSummary = {
+		successfulProviderCount: providerResults.size,
+		successfulGoalCount: goalResults.length,
+		failedProviderCount: providers.size - providerResults.size,
+		failedGoalCount: failedGoalCount,
+	};
+	logger.info(summary, "Summary");
+
+	const indexPath = path.join(options.outputDir, "index.json");
+
+	let packages: IndexFilePackage[] = [];
+
+	// TODO: is there a better way to do this? if the formatVersion changes the old data is lost, and we don't properly validate the data either
+	const existingIndexContent = await readFileIfExists(indexPath, "utf-8");
+	if (existingIndexContent) {
+		let obj: any;
+		try {
+			obj = JSON.parse(existingIndexContent);
+		} catch {
+			/* empty */
+		}
+
+		if (obj && obj.formatVersion == 1 && obj.packages) {
+			packages = obj.packages;
+		}
+	}
+
+	for (const { goal, sha256 } of goalResults) {
+		const existingIndex = packages.findIndex((x) => x.uid === goal.id);
+		if (existingIndex !== -1) {
+			packages.splice(existingIndex, 1);
+		}
+
+		packages.push({ uid: goal.id, name: goal.name, sha256 });
+	}
+	const index: IndexFile = {
+		formatVersion: 1,
+		packages: sortBy(packages, ["uid"]),
+	};
+
+	await writeFile(indexPath, JSON.stringify(index, undefined, 2));
+
+	logger.info(`Done in ${formattedTime}!`);
+
+	return summary;
 }
 
 async function runGoal(
+	goalLogger: Logger,
 	goal: Goal,
 	data: unknown[],
 	options: RunnerOptions,
 ): Promise<string> {
-	const outputs = goal.generate(data);
+	const outputs = goal.generate(goalLogger, data);
 	const outputDir = path.join(options.outputDir, goal.id, path.sep);
 
 	await mkdir(outputDir, { recursive: true });
@@ -287,11 +315,11 @@ async function runGoal(
 
 			await writeFile(outputPath, outputData);
 
-			logger.debug(`Wrote '${outputPath}'`);
+			goalLogger.debug(`Wrote '${outputPath}'`);
 
 			const sha256 = await digestStringToHex("sha-256", outputData);
 
-			logger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
+			goalLogger.debug(`sha-256 of '${outputPath}' is ${sha256}`);
 
 			return {
 				...pick(output, [
@@ -319,11 +347,9 @@ async function runGoal(
 
 	await writeFile(indexPath, indexData);
 
-	logger.debug(`Wrote '${indexPath}'`);
+	goalLogger.debug(`Wrote '${indexPath}'`);
 
 	const indexSha256 = await digestStringToHex("sha-256", indexData);
-
-	logger.debug(`sha-256 of '${indexPath}' index is ${indexSha256}`);
 
 	return indexSha256;
 }

@@ -20,7 +20,7 @@ const CRINGE_VERSIONS = ["47.1.82", "1.20.1-47.1.7"];
 
 export default defineProvider({
 	id: "neoforge-loader-versions",
-	provide: async (cache) => [
+	provide: async (_logger, cache) => [
 		...(await provide(cache, "net.neoforged", "neoforge")),
 		...(await provide(cache, "net.neoforged", "forge")),
 	],

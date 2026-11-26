@@ -15,7 +15,6 @@ import {
 } from "#common/transformation/pistonMeta.ts";
 import { setIfAbsent } from "#common/util.ts";
 import { defineGoal, type VersionOutput } from "#index.ts";
-import { moduleLogger } from "#logger.ts";
 import pistonMetaGameVersions from "#providers/gameVersions/index.ts";
 import type {
 	VersionFileArtifact,
@@ -26,17 +25,16 @@ import type {
 import { PistonVersion } from "#schemas/pistonMeta/pistonVersion.ts";
 import { groupBy } from "es-toolkit";
 import { isEmpty } from "es-toolkit/compat";
+import type { Logger } from "pino";
 import { LWJGL_LIBRARY_PATCHES } from "./libraryPatches.ts";
-
-const logger = moduleLogger();
 
 const lwjgl3 = defineGoal({
 	id: "org.lwjgl3",
 	name: "LWJGL 3",
 	deps: [pistonMetaGameVersions],
 
-	generate: ([versions]) =>
-		generate(versions, ["org.lwjgl"], isLWJGL3, () => false),
+	generate: (logger, [versions]) =>
+		generate(logger, versions, ["org.lwjgl"], isLWJGL3, () => false),
 });
 
 const lwjgl2 = defineGoal({
@@ -44,8 +42,14 @@ const lwjgl2 = defineGoal({
 	name: "LWJGL 2",
 	deps: [pistonMetaGameVersions],
 
-	generate: ([versions]) =>
-		generate(versions, ["org.lwjgl3"], isLWJGL2, isLWJGL2Dependency),
+	generate: (logger, [versions]) =>
+		generate(
+			logger,
+			versions,
+			["org.lwjgl3"],
+			isLWJGL2,
+			isLWJGL2Dependency,
+		),
 });
 
 export default [lwjgl3, lwjgl2];
@@ -70,6 +74,7 @@ interface LWJGLModule {
 }
 
 function generate(
+	logger: Logger,
 	data: PistonVersion[],
 	conflictUIDs: string[],
 	filter: VersionNamePredicate,

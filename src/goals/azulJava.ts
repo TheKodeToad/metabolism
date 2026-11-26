@@ -14,7 +14,7 @@ export default defineGoal({
 	name: "Azul Provided Java",
 	deps: [azulJavaVersions],
 
-	generate([pkgs]): VersionOutput[] {
+	generate(_logger, [pkgs]): VersionOutput[] {
 		const result: VersionOutput[] = [];
 
 		const majorVersions: Map<number, AzulJavaPackage[]> = new Map();

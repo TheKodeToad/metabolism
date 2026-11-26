@@ -17,7 +17,7 @@ const fabricLoader = defineGoal({
 	name: "Fabric Loader",
 	deps: [fabricLoaderVersions],
 
-	generate: ([versions]) => {
+	generate: (_logger, [versions]) => {
 		const result = versions.map((info) => ({
 			...transformVersion(info, FABRIC_MAVEN),
 			type: "release",
@@ -36,7 +36,7 @@ const quiltLoader = defineGoal({
 	name: "Quilt Loader",
 	deps: [quiltLoaderVersions],
 
-	generate: ([quiltVers]) => {
+	generate: (_logger, [quiltVers]) => {
 		const result = quiltVers.map((info) => {
 			let type = "release";
 

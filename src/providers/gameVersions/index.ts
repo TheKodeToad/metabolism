@@ -15,7 +15,7 @@ import { OLD_SNAPSHOTS } from "./oldSnapshots.ts";
 export default defineProvider({
 	id: "game-versions",
 
-	async provide(cache): Promise<PistonVersion[]> {
+	async provide(_logger, cache): Promise<PistonVersion[]> {
 		return Promise.all([
 			pistonMetaVersions(cache),
 			fabricMavenVersions(cache),
